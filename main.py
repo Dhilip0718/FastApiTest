@@ -15,6 +15,9 @@ from pydantic import BaseModel
 import datetime
 import uuid
 import json
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 statics.load_statics(globals())
 
@@ -43,12 +46,14 @@ def read_root():
 @app.get("/products")
 def read_products(token: Optional[str] = Header(None)):
     #writer = graphsonV3d0.GraphSONWriter()
+    app.logger,info('Processing the /products request')
  
     #products = writer.toDict(g.V().hasLabel('Product').limit(2).project('Product Id','Product Name').by('productID').by('productName').toList())
     #products = writer.writeObject(g.V().hasLabel('Product').limit(2).project('Product Id','Product Name').by('productID').by('productName').toList())
     products = g.V().hasLabel('Product').limit(2).project('Product Id','Product Name','supplierID','categoryID','discontinued').\
                 by('productID').by('productName').by('supplierID').by('categoryID').by('discontinued').toList()
     #pjson = json.dumps(products)
+    app.logger,info('Request processing complete', '',products )
     return products
 
 @app.get("/products/{id}")
@@ -68,6 +73,15 @@ def read_suppliers(token: Optional[str] = Header(None)):
     supplier = g.V().hasLabel('Supplier').valueMap().toList()
     
     return supplier
+
+@app.get("/prodSup")
+def read_suppliers(token: Optional[str] = Header(None)):
+    try:
+        supplier = prd_cat = g.V().hasLabel('Product').limit(5).as_('p').out().hasLabel('Category').as_('c').select('p','c').by(valueMap('productID','productName')).by(valueMap('categoryID','categoryName'))
+    
+        return supplier
+    except Exception as e:
+        return str(e)
 
 @app.get("/product-categories")
 def read_categories(token: Optional[str] = Header(None)):
