@@ -65,7 +65,6 @@ def read_suppliers(token: Optional[str] = Header(None)):
     """Returns product details based on the Supplier"""
     try:
         supplier = g.V().hasLabel('Supplier').valueMap().toList()
-        app.logger.info('Complete /suppliers request')  
         return supplier
     except Exception as e:
         return str(e)
@@ -74,9 +73,7 @@ def read_suppliers(token: Optional[str] = Header(None)):
 def read_categories(token: Optional[str] = Header(None)):
     """ Returns categories """
     try:
-        app.logger.info('Processing the /product-categories request')
-        category = g.V().hasLabel('Category').valueMap().toList()
-        app.logger.info('Complete /product-categories request')    
+        category = g.V().hasLabel('Category').valueMap().toList()   
         return category
     except Exception as e:
         return str(e)
