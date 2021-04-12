@@ -15,9 +15,6 @@ from pydantic import BaseModel
 import datetime
 import uuid
 import json
-import logging
-
-logging.basicConfig(level=logging.DEBUG)
 
 statics.load_statics(globals())
 
@@ -45,15 +42,12 @@ def read_root():
 
 @app.get("/products")
 def read_products(token: Optional[str] = Header(None)):
-    #writer = graphsonV3d0.GraphSONWriter()
-    app.logger.info('Processing the /products request')
- 
+    #writer = graphsonV3d0.GraphSONWriter() 
     #products = writer.toDict(g.V().hasLabel('Product').limit(2).project('Product Id','Product Name').by('productID').by('productName').toList())
     #products = writer.writeObject(g.V().hasLabel('Product').limit(2).project('Product Id','Product Name').by('productID').by('productName').toList())
     products = g.V().hasLabel('Product').limit(2).project('Product Id','Product Name','supplierID','categoryID','discontinued').\
                 by('productID').by('productName').by('supplierID').by('categoryID').by('discontinued').toList()
     #pjson = json.dumps(products)
-    app.logger.info('Request processing complete', '',products )
     return products
 
 @app.get("/products/{id}")
@@ -61,9 +55,7 @@ def read_products(request: Request, id: str):
     """Returns product details based on the ProductID"""
     try:
         ret = {}
-        app.logger.info('Processing the /products/{id} request')
         product = g.V().has('Product','productID',id).project('Product Id','Product Name').by('productID').by('productName').toList()
-        app.logger.info('Complete  /products/{id} request')
         return product
     except Exception as e:
         return str(e)
@@ -72,7 +64,6 @@ def read_products(request: Request, id: str):
 def read_suppliers(token: Optional[str] = Header(None)):
     """Returns product details based on the Supplier"""
     try:
-        app.logger.info('Processing the /suppliers request')
         supplier = g.V().hasLabel('Supplier').valueMap().toList()
         app.logger.info('Complete /suppliers request')  
         return supplier
@@ -95,7 +86,6 @@ def read_categories(token: Optional[str] = Header(None)):
 def read_all_products_with_category_supplier(token: Optional[str] = Header(None)):
     """Returns all product catogery and supplier details"""
     try:
-        app.logger.info('Processing the /all-product-cat-supplier request')
         pcs = g.V().hasLabel("Product").match(as_("c").values("productID").as_("Product ID"),\
                 as_("c").values("productName").as_("Product Name"),\
                 as_("c").out("PART_OF").values("categoryID").as_("Category ID"),\
@@ -103,7 +93,6 @@ def read_all_products_with_category_supplier(token: Optional[str] = Header(None)
                 as_("c").in_("SUPPLIES").values("supplierID").as_("Supplier ID"),\
                 as_("c").in_("SUPPLIES").values("companyName").as_("Company Name"),\
                 ).select("Product ID","Product Name","Category ID","Category Name","Supplier ID","Company Name").toList()
-        app.logger.info('Complete /all-product-cat-supplier request with {pcs} response')
         return pcs
     
     except Exception as e:
@@ -112,8 +101,6 @@ def read_all_products_with_category_supplier(token: Optional[str] = Header(None)
 @app.get("/filter-products")
 def read_filter_products(productId: int = 0, categoryId: int = 0, supplierId: int = 0):
     """Returns filter result based on productId, categoryId or supplierId, empty if no match"""
-    
-    app.logger.info('Processing the /filter-products request')
     # check supplied product id. if it is not 0 then filter on product
     if productId == 0:
        
@@ -151,5 +138,4 @@ def read_filter_products(productId: int = 0, categoryId: int = 0, supplierId: in
     query_submit = conn.submit(finalquery)
     future_results = query_submit.all()
     results = future_results.result()
-    app.logger.info('Complete the /filter-products request with {results} result')
     return results
