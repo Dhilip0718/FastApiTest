@@ -21,12 +21,12 @@ logging.basicConfig(level=logging.DEBUG)
 
 statics.load_statics(globals())
 
-conn = client.Client('ws://52.174.65.201:8182/gremlin','g')
+conn = client.Client('ws://10.1.0.4:8182/gremlin','g')
 
 
 
-endpoint = 'ws://52.174.65.201:8182/gremlin'
-#endpoint = 'ws://10.1.0.4:8182/gremlin'
+# endpoint = 'ws://52.174.65.201:8182/gremlin'
+endpoint = 'ws://10.1.0.4:8182/gremlin'
 
 graph = Graph()
 
@@ -58,61 +58,62 @@ def read_products(token: Optional[str] = Header(None)):
 
 @app.get("/products/{id}")
 def read_products(request: Request, id: str):
-    
-    ret = {}
- 
-    product = g.V().has('Product','productID',id).project('Product Id','Product Name').by('productID').by('productName').toList()
-    
-
-    return product
+    """Returns product details based on the ProductID"""
+    try:
+        ret = {}
+        app.logger,info('Processing the /products/{id} request')
+        product = g.V().has('Product','productID',id).project('Product Id','Product Name').by('productID').by('productName').toList()
+        app.logger,info('Complete  /products/{id} request')
+        return product
+    except Exception as e:
+        return str(e)
 
 @app.get("/suppliers")
 def read_suppliers(token: Optional[str] = Header(None)):
-    
- 
-    supplier = g.V().hasLabel('Supplier').valueMap().toList()
-    
-    return supplier
-
-@app.get("/prodSup")
-def read_suppliers(token: Optional[str] = Header(None)):
+    """Returns product details based on the Supplier"""
     try:
-        supplier = prd_cat = g.V().hasLabel('Product').limit(5).as_('p').out().hasLabel('Category').as_('c').select('p','c').by(valueMap('productID','productName')).by(valueMap('categoryID','categoryName'))
-    
+        app.logger,info('Processing the /suppliers request')
+        supplier = g.V().hasLabel('Supplier').valueMap().toList()
+        app.logger,info('Complete /suppliers request')  
         return supplier
     except Exception as e:
         return str(e)
 
 @app.get("/product-categories")
 def read_categories(token: Optional[str] = Header(None)):
-    
- 
-    category = g.V().hasLabel('Category').valueMap().toList()
-    
-    return category
+    """ Returns categories """
+    try:
+        app.logger,info('Processing the /product-categories request')
+        category = g.V().hasLabel('Category').valueMap().toList()
+        app.logger,info('Complete /product-categories request')    
+        return category
+    except Exception as e:
+        return str(e)
 
 
 @app.get("/all-product-cat-supplier")
 def read_all_products_with_category_supplier(token: Optional[str] = Header(None)):
-    
- 
-    pcs = g.V().hasLabel("Product").match(as_("c").values("productID").as_("Product ID"),\
+    """Returns all product catogery and supplier details"""
+    try:
+        app.logger,info('Processing the /all-product-cat-supplier request')
+        pcs = g.V().hasLabel("Product").match(as_("c").values("productID").as_("Product ID"),\
                 as_("c").values("productName").as_("Product Name"),\
                 as_("c").out("PART_OF").values("categoryID").as_("Category ID"),\
                 as_("c").out("PART_OF").values("categoryName").as_("Category Name"),\
                 as_("c").in_("SUPPLIES").values("supplierID").as_("Supplier ID"),\
                 as_("c").in_("SUPPLIES").values("companyName").as_("Company Name"),\
                 ).select("Product ID","Product Name","Category ID","Category Name","Supplier ID","Company Name").toList()
+        app.logger,info('Complete /all-product-cat-supplier request with {pcs} response')
+        return pcs
     
-    return pcs
+    except Exception as e:
+        return str(e)
 
 @app.get("/filter-products")
 def read_filter_products(productId: int = 0, categoryId: int = 0, supplierId: int = 0):
+    """Returns filter result based on productId, categoryId or supplierId, empty if no match"""
     
-    print(productId)
-    print(categoryId)
-    print(supplierId)
-
+    app.logger,info('Processing the /filter-products request')
     # check supplied product id. if it is not 0 then filter on product
     if productId == 0:
        
@@ -147,13 +148,8 @@ def read_filter_products(productId: int = 0, categoryId: int = 0, supplierId: in
                 __.as("c").in("SUPPLIES").{}.values("supplierID").as("Supplier ID"),\
                 __.as("c").in("SUPPLIES").{}.values("companyName").as("Company Name"),\
                 ).select("Product ID","Product Name","Category ID","Category Name","Supplier ID","Company Name").toList()'.format(product_query,category_query,category_query,supplier_query,supplier_query)
-    #print(finalquery)
-
     query_submit = conn.submit(finalquery)
     future_results = query_submit.all()
     results = future_results.result()
-    #print(results)
-
-    #conn.close
-    
+    app.logger,info('Complete the /filter-products request with {results} result')
     return results
